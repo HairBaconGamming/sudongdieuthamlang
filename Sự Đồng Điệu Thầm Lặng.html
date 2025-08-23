@@ -1,0 +1,515 @@
+
+        <!DOCTYPE html>
+        <html lang="vi">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Sự Đồng Điệu Thầm Lặng</title>
+            <style>
+        /* --- Cài đặt Theme và Biến CSS (Giữ nguyên) --- */
+        :root {
+            --sidebar-width: 280px;
+            --sidebar-bg: #ffffff;
+            --sidebar-border: #e0e0e0;
+            --font-main: 'Lora', serif;
+            --font-title: 'Qwitcher Grypen', cursive;
+            --bg-color: #fdfcfb;
+            --container-bg: #ffffff;
+            --text-color: #333333;
+            --heading-color: #111111;
+            --primary-color: #0056b3;
+            --border-color: #eeeeee;
+            --shadow-color: rgba(0,0,0,0.1);
+            --toc-link-color: #444444;
+            --toc-link-active-bg: #e0eaf3;
+            --toc-link-active-border: #0056b3;
+            --btn-bg: #111111;
+            --btn-color: #ffffff;
+        }
+        [data-theme="dark"] {
+            --sidebar-bg: #1e1e1e;
+            --sidebar-border: #444444;
+            --bg-color: #121212;
+            --container-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --heading-color: #f5f5f5;
+            --primary-color: #64b5f6;
+            --border-color: #333333;
+            --shadow-color: rgba(0,0,0,0.4);
+            --toc-link-color: #cccccc;
+            --toc-link-active-bg: #37474f;
+            --toc-link-active-border: #64b5f6;
+            --btn-bg: #f5f5f5;
+            --btn-color: #121212;
+        }
+        [data-theme="sepia"] {
+            --sidebar-bg: #fbf7f0;
+            --sidebar-border: #dcd6cb;
+            --bg-color: #f4f0e8;
+            --container-bg: #fbf7f0;
+            --text-color: #5b4636;
+            --heading-color: #4a3728;
+            --primary-color: #7d6a5a;
+            --border-color: #e4e0d8;
+            --shadow-color: rgba(0,0,0,0.1);
+            --toc-link-color: #5b4636;
+            --toc-link-active-bg: #e2d8c7;
+            --toc-link-active-border: #7d6a5a;
+            --btn-bg: #4a3728;
+            --btn-color: #fbf7f0;
+        }
+
+        /* --- Cài đặt Chung --- */
+        @import url('https://fonts.googleapis.com/css2?family=Qwitcher+Grypen:wght@700&family=Lora:ital,wght@0,400..700;1,400..700&display=swap');
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: var(--font-main);
+            line-height: 1.7;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* --- LAYOUT SIDEBAR & MAIN CONTENT --- */
+        #toc-sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--sidebar-border);
+            transform: translateX(calc(-1 * var(--sidebar-width))); /* Ẩn đi mặc định */
+            transition: transform 0.3s ease-in-out;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+        }
+        .main-content {
+            padding: 1rem 2rem;
+            max-width: 900px;
+            margin: 2rem auto;
+            transition: margin-left 0.3s ease-in-out;
+        }
+        body.sidebar-open #toc-sidebar {
+            transform: translateX(0);
+        }
+        /* Trên màn hình lớn, đẩy content sang phải */
+        @media (min-width: 1024px) {
+            body.sidebar-open .main-content {
+                margin-left: calc(var(--sidebar-width) + 2rem);
+            }
+        }
+        
+        /* --- Nút Bật/Tắt Sidebar (Hamburger) --- */
+        #toc-toggle-btn {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 1001;
+            width: 40px;
+            height: 40px;
+            background: var(--container-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+        }
+        #toc-toggle-btn span {
+            display: block;
+            width: 22px;
+            height: 2px;
+            background-color: var(--text-color);
+            transition: all 0.3s;
+        }
+        body.sidebar-open #toc-toggle-btn span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+        body.sidebar-open #toc-toggle-btn span:nth-child(2) { opacity: 0; }
+        body.sidebar-open #toc-toggle-btn span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+        /* --- Overlay (che nội dung khi sidebar mở trên mobile) --- */
+        #overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        body.sidebar-open #overlay {
+            opacity: 1;
+            visibility: visible;
+        }
+        @media (min-width: 1024px) { #overlay { display: none; } } /* Không cần overlay trên màn hình lớn */
+
+        /* --- MỤC LỤC BÊN TRONG SIDEBAR --- */
+        #toc-sidebar h3 {
+            padding: 1.5rem 1rem 1rem 1.5rem;
+            margin: 0;
+            font-size: 1.5rem;
+            border-bottom: 1px solid var(--sidebar-border);
+        }
+        #toc-sidebar ul {
+            list-style: none;
+            padding: 1rem 0;
+            margin: 0;
+            overflow-y: auto; /* Thêm cuộn nếu danh sách dài */
+            flex-grow: 1;
+        }
+        #toc-sidebar li a {
+            display: block;
+            padding: 0.7rem 1.5rem;
+            text-decoration: none;
+            color: var(--toc-link-color);
+            border-left: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+        #toc-sidebar li a:hover {
+            background-color: var(--border-color);
+        }
+        #toc-sidebar li a.active {
+            background-color: var(--toc-link-active-bg);
+            color: var(--primary-color);
+            font-weight: bold;
+            border-left-color: var(--toc-link-active-border);
+        }
+
+        /* --- Header & Theme Switcher (Giữ nguyên) --- */
+        header { text-align: center; margin-bottom: 1rem; }
+        h1 { font-family: var(--font-title); font-size: 4.5rem; font-weight: 700; margin: 0; color: var(--heading-color); }
+        .theme-switcher { display: flex; gap: 0.5rem; justify-content: center; margin: 1rem 0; }
+        .theme-btn { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--border-color); cursor: pointer; transition: transform 0.2s; }
+        .theme-btn:hover { transform: scale(1.1); }
+        #theme-light { background-color: #fdfcfb; }
+        #theme-dark { background-color: #1e1e1e; }
+        #theme-sepia { background-color: #f4f0e8; }
+        
+        /* --- Nội dung chương & Footer (Giữ nguyên) --- */
+        .chapter { margin-bottom: 3rem; }
+        h2 { font-family: var(--font-title); font-size: 3rem; font-weight: 700; color: var(--heading-color); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+        p { margin-bottom: 1rem; }
+        footer { text-align: center; font-size: 0.9rem; color: #888; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border-color); }
+
+        /* --- Progress bar & Nút điều hướng (Giữ nguyên) --- */
+        #progress-container { position: fixed; top: 0; left: 0; width: 100%; height: 6px; background: var(--border-color); z-index: 998; }
+        #progress-bar { height: 6px; background: var(--btn-bg); width: 0%; }
+        .nav-btn { position: fixed; right: 1rem; padding: 0.5rem 0.8rem; border: none; border-radius: 6px; color: var(--btn-color); background: var(--btn-bg); cursor: pointer; font-size: 0.9rem; transition: background 0.25s ease; z-index: 10; }
+        .nav-btn:hover { opacity: 0.8; }
+        #to-top { bottom: 3.5rem; }
+        #next-chapter { bottom: 1rem; }
+        </style>
+        </head>
+        <body>
+            <!-- NÚT BẬT/TẮT SIDEBAR -->
+            <button id="toc-toggle-btn" title="Mục lục">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            
+            <!-- SIDEBAR MỤC LỤC -->
+            <aside id="toc-sidebar">
+                <h3>Mục lục</h3>
+                <ul><li><a href="#chapter-0" class="toc-link">Chương 1</a></li><li><a href="#chapter-1" class="toc-link">Chương 2</a></li><li><a href="#chapter-2" class="toc-link">Chương 3</a></li><li><a href="#chapter-3" class="toc-link">Chương 4</a></li><li><a href="#chapter-4" class="toc-link">Chương 5</a></li><li><a href="#chapter-5" class="toc-link">Chương 6</a></li><li><a href="#chapter-6" class="toc-link">Chương 7</a></li><li><a href="#chapter-7" class="toc-link">Chương 8</a></li></ul>
+            </aside>
+            
+            <!-- LỚP PHỦ -->
+            <div id="overlay"></div>
+
+            <!-- NỘI DUNG CHÍNH -->
+            <div class="main-content">
+                <div id="progress-container"><div id="progress-bar"></div></div>
+                <div class="container">
+                    <header>
+                        <h1>Sự Đồng Điệu Thầm Lặng</h1>
+                        <div class="theme-switcher">
+                            <button class="theme-btn" id="theme-light" data-theme="light" title="Giao diện sáng"></button>
+                            <button class="theme-btn" id="theme-dark" data-theme="dark" title="Giao diện tối"></button>
+                            <button class="theme-btn" id="theme-sepia" data-theme="sepia" title="Giao diện nâu"></button>
+                        </div>
+                    </header>
+                    <main><article id="chapter-0" class="chapter"><h2>Chương 1</h2><hr />
+<h3><strong>Chapter 1: Ngưỡng Cửa Mang Tên 10A8</strong></h3>
+<p>Tiếng ve sầu cuối hạ râm ran như một bản hợp xướng hỗn loạn, náo nhiệt y hệt mớ suy nghĩ trong đầu tôi. Hôm nay là ngày tựu trường. Đối với người khác, đó có thể là một khởi đầu mới đầy hứa hẹn. Còn đối với tôi, nó giống như việc bị đẩy lên một sân khấu lạ lẫm mà không hề có kịch bản.</p>
+<p>Tôi là Minh, một cậu trai mười lăm tuổi vừa chính thức trở thành học sinh trường THPT Thủ Đức. Đứng trước cánh cổng trường sừng sững, tôi siết chặt quai ba lô đến mức các đốt ngón tay trắng bệch. Bộ đồng phục mới tinh tươm vẫn còn thơm mùi vải hồ cứng ngắc và xa lạ, giống hệt cảm giác của tôi lúc này. Xung quanh là tiếng cười nói rộn rã, những nhóm bạn cũ tíu tít kể chuyện mùa hè, những gương mặt mới háo hức làm quen. Họ hòa vào nhau tự nhiên như không khí, còn tôi chỉ là một hạt bụi lơ lửng, lạc lõng.</p>
+<p>Nỗi sợ giao tiếp của tôi không phải là sự nhút nhát đơn thuần. Nó là một bức tường vô hình, dựng lên mỗi khi có ai đó nhìn vào mắt tôi quá một giây. Não tôi sẽ bắt đầu gào thét một ngàn câu hỏi: <em>“Họ đang nghĩ gì? Mình có nên cười không? Lỡ cười gượng gạo thì sao? Hay là nên nói gì đó trước? Nhưng nói gì bây giờ?”</em>. Cuối cùng, tôi luôn chọn cách an toàn nhất: cúi gằm mặt và bước đi.</p>
+<p>Tìm lớp 10A8 trong một ngôi trường rộng lớn thật không khác gì một thử thách. Tôi đi dọc hành lang, cố gắng tỏ ra bình thản như đang tìm kiếm một thứ gì đó quen thuộc, trong khi tim đập lạc nhịp vì lo sợ ai đó sẽ gọi mình lại và bắt chuyện. Tấm biển “10A8” cuối cùng cũng hiện ra ở cuối dãy hành lang tầng hai, nép mình khiêm tốn.</p>
+<p>Tôi dừng lại trước cánh cửa gỗ đã ngả màu thời gian, hít một hơi thật sâu để gom hết can đảm. Đây không chỉ là một lớp học. Đây là thế giới của tôi trong ba năm tới, nơi những tình bạn có thể nảy mầm, những bài học sâu sắc đang chờ đợi, và biết đâu, tâm hồn đầy lo âu này sẽ tìm thấy một liều thuốc chữa lành.</p>
+<p>Tôi đẩy nhẹ cánh cửa. Thế giới mới mang tên 10A8, chính thức bắt đầu.</p></article><article id="chapter-1" class="chapter"><h2>Chương 2</h2><hr />
+<h3><strong>Chapter 2: Những Gương Mặt Đầu Tiên</strong></h3>
+<p>Thế giới phía sau cánh cửa 10A8 ồn ào hơn tôi tưởng tượng.</p>
+<p>Không khí đặc quánh bởi mùi sách vở mới, mùi sơn tường và cả mùi hồi hộp của những khởi đầu. Mấy chục gương mặt xa lạ, mỗi người một vẻ, tạo thành một bức tranh hỗn loạn đầy sức sống. Có nhóm đã quen nhau từ cấp hai, tụm năm tụm ba rôm rả. Có những người ngồi một mình, ánh mắt lướt qua điện thoại. Và có tôi, đứng sững ở cửa như một pho tượng lạc chỗ, cảm giác như mọi cặp mắt trong phòng đều đang đổ dồn về phía mình.</p>
+<p><em>Bình tĩnh nào, Minh. Chỉ cần tìm một chỗ ngồi thôi.</em></p>
+<p>Não tôi bắt đầu phân tích với tốc độ của một siêu máy tính. Ngồi bàn đầu? Không, quá gần bảng và giáo viên, sẽ bị chú ý. Ngồi giữa? Sẽ bị kẹp giữa những người xa lạ. Và rồi, như một phản xạ vô điều kiện, mắt tôi hướng về dãy bàn cuối cùng, cạnh cửa sổ. Đó là pháo đài an toàn của những tâm hồn trầm lặng, một góc khuất để quan sát thế giới mà không bị thế giới quan sát lại.</p>
+<p>Tôi lách người qua những chiếc ghế, cố gắng thu nhỏ bản thân hết mức có thể, rồi nhẹ nhàng đáp xuống chiếc ghế cuối dãy. Thở phào. Từ đây, tôi có thể nhìn bao quát cả lớp, và xa hơn là khoảng sân trường rợp bóng phượng vĩ. Một cảm giác an toàn mong manh len lỏi trong lòng.</p>
+<p>Tôi đang mải mê với thế giới riêng của mình thì một giọng nói vui vẻ vang lên ngay bên cạnh, phá tan bức tường phòng thủ tôi vừa dựng lên.</p>
+<p>“Chào! Chỗ này có ai ngồi chưa?”</p>
+<p>Tôi giật nảy mình, quay sang. Một cậu bạn với nụ cười rạng rỡ như nắng tháng Tám đang đứng đó, tay chỉ vào chiếc ghế trống cạnh tôi. Cậu ấy có mái tóc hơi rối, đôi mắt sáng và một năng lượng tích cực tỏa ra xung quanh. Hoàn toàn trái ngược với tôi.</p>
+<p>“Chưa… chưa có,” tôi lắp bắp, giọng lí nhí.</p>
+<p>“Tuyệt! Mình ngồi đây nhé,” cậu ấy nói rồi không đợi tôi trả lời, đã quăng ba lô lên bàn và ngồi phịch xuống. “Mình là Khoa. Đỗ Hoàng Khoa. Còn bạn?”</p>
+<p>Cái bắt tay chìa ra trước mặt khiến tôi bối rối. Tay tôi ươn ướt mồ hôi. Tôi ngập ngừng đưa tay ra, một cái chạm hờ hững và vội vã.</p>
+<p>“Mình… là Minh.”</p>
+<p>“Minh hả? Rất vui được làm quen,” Khoa cười, để lộ chiếc răng khểnh duyên dáng. Cậu ấy dường như không nhận ra sự ngượng ngùng đến cực điểm của tôi, hoặc có lẽ cậu ấy chỉ đơn giản là không quan tâm. Đối với Khoa, việc bắt chuyện có lẽ dễ dàng như hít thở.</p>
+<p>Đây chính là mẫu người tôi vừa ngưỡng mộ vừa sợ hãi. Họ là ánh sáng, còn tôi chỉ là cái bóng. Khoa bắt đầu kể lể đủ thứ chuyện, từ việc cậu ấy suýt đi học muộn ra sao đến việc cậu ấy mừng thế nào khi được vào lớp A8. Tôi chỉ biết “ờ”, “à”, “ừm”, não tôi hoàn toàn trống rỗng, không thể nghĩ ra bất cứ điều gì để đáp lại một cách bình thường. Cuộc trò chuyện của chúng tôi thực chất là một màn độc thoại của Khoa.</p>
+<p>Giữa lúc tôi đang vật lộn với sự tồn tại của chính mình thì cô giáo bước vào. Mọi tiếng ồn trong lớp lập tức im bặt. Cô mặc một chiếc áo dài màu thiên thanh, mái tóc búi gọn gàng và có một nụ cười rất hiền.</p>
+<p>“Chào các em, cô là Mai. Rất vui được làm giáo viên chủ nhiệm của lớp 10A8 chúng ta trong ba năm tới.”</p>
+<p>Giọng cô ấm áp và truyền cảm, dần xua tan không khí căng thẳng. Cô nói về những quy định, về chương trình học, nhưng điều đọng lại trong tôi nhất là khi cô chia sẻ:</p>
+<p>“Cô biết hôm nay là một ngày đặc biệt. Có em háo hức, có em lo lắng, có em có thể cảm thấy cô đơn giữa những gương mặt mới. Nhưng hãy nhớ rằng, kể từ hôm nay, 10A8 không chỉ là một lớp học. Cô hy vọng nó sẽ trở thành ngôi nhà thứ hai của các em, nơi chúng ta cùng nhau học tập, cùng nhau chia sẻ, cùng nhau trưởng thành. <strong>Tình bạn</strong> được xây dựng từ những năm tháng này sẽ là một trong những tài sản quý giá nhất. Hãy mở lòng và giúp đỡ lẫn nhau nhé.”</p>
+<p>Lời của cô như một dòng nước mát lành tưới vào tâm hồn khô cằn của tôi. <em>Ngôi nhà thứ hai ư?</em> Một nơi để thuộc về, một nơi để an toàn. Đó là tất cả những gì tôi khao khát.</p>
+<p>Trong lúc lắng nghe cô nói, ánh mắt tôi vô tình lướt qua một bạn nữ ngồi cách đó vài dãy bàn. Bạn ấy cũng ngồi cạnh cửa sổ, mái tóc dài đen nhánh, đang chăm chú vẽ gì đó vào một cuốn sổ tay nhỏ. Bạn ấy không nói chuyện với ai, chỉ lặng lẽ trong thế giới của riêng mình, giống như một phiên bản khác của tôi, nhưng điềm tĩnh và thanh thản hơn. Một khoảnh khắc nào đó, bạn ấy ngước lên, ánh mắt chúng tôi chạm nhau chỉ trong một giây ngắn ngủi. Không có sự dò xét, chỉ có một sự đồng cảm thầm lặng nào đó khiến tim tôi khẽ run lên.</p>
+<p>Tiếng chuông báo hết giờ vang lên, kết thúc buổi học đầu tiên. Khoa huých vai tôi.</p>
+<p>“Về chung không, Minh? Nhà cậu ở đâu?”</p>
+<p>Tôi lại bối rối. Lời của cô Mai vẫn còn văng vẳng trong đầu tôi, một <strong>bài học sâu sắc</strong> về sự cởi mở. Có lẽ… có lẽ tôi nên thử một chút.</p>
+<p>“Nhà mình… cũng ở Thủ Đức,” tôi đáp, giọng đã bớt run hơn một chút.</p>
+<p>Khoa cười toe toét. “Vậy thì tiện quá rồi! Đi nào, người bạn mới!”</p>
+<p>Cậu ấy khoác vai tôi, một hành động thân mật đột ngột khiến tôi cứng cả người, nhưng lại không hề khó chịu. Dưới ánh nắng cuối hạ, tôi bước những bước đầu tiên rời khỏi lớp 10A8 cùng người bạn đầu tiên. Có lẽ, hành trình <strong>chữa lành tâm hồn</strong> đầy chông gai của tôi đã tìm thấy một tia sáng le lói. Con đường phía trước vẫn còn dài, nhưng ít nhất, hôm nay tôi đã không còn bước đi một mình.</p></article><article id="chapter-2" class="chapter"><h2>Chương 3</h2><hr />
+<h3><strong>Chapter 3: Sóng Ngầm Và Những Quan Sát Thầm Lặng</strong></h3>
+<p>Con đường từ trường về nhà chưa bao giờ trở nên ngắn lại một cách kỳ lạ như vậy. Thường ngày, tôi sẽ cắm tai nghe, bật một bản nhạc không lời và để dòng suy nghĩ cuốn mình đi trong thế giới riêng. Nhưng hôm nay, có Khoa đi bên cạnh.</p>
+<p>Và Khoa nói rất nhiều.</p>
+<p>“Trường mình rộng thật đấy Minh nhỉ? Hồi cấp hai trường tớ bé tí. À mà cậu biết quán trà tắc gần cổng sau không? Ngon lắm đấy, hôm nào phải thử mới được. Cô Mai chủ nhiệm trông hiền ghê, hy vọng cô không giao nhiều bài tập về nhà…”</p>
+<p>Cậu ấy nói say sưa, nhảy từ chủ đề này sang chủ đề khác một cách tự nhiên đến kinh ngạc. Tôi hầu như chỉ đáp lại bằng những âm thanh rời rạc: “Ừ”, “Vậy à?”, “Mình không biết”. Nhưng có một điều lạ lùng. Cái cảm giác bị áp lực phải nói gì đó, phải duy trì cuộc trò chuyện, dường như đã biến mất. Năng lượng của Khoa giống như một dòng sông, nó tự chảy mà không cần tôi phải khuấy động. Tôi chỉ cần ở đó, lắng nghe, và dòng sông ấy vẫn tuôn trào. Đó là một cảm giác nhẹ nhõm đến bất ngờ. <strong>Tình bạn</strong> của chúng tôi đã bắt đầu theo một cách không thể đơn giản hơn.</p>
+<p>Khi chúng tôi đến ngã ba, Khoa vẫy tay chào. “Mai gặp lại nhé, Minh!”. Tôi gật đầu, lần đầu tiên chủ động nói một câu hoàn chỉnh: “Ừ, mai gặp.”</p>
+<p>Chỉ một câu nói đơn giản, nhưng với tôi, nó giống như vừa hoàn thành một bài kiểm tra khó. Về đến nhà, tôi nằm vật ra giường, cảm thấy một sự mệt mỏi dễ chịu. Mệt vì phải tiếp nhận quá nhiều tương tác xã hội trong một ngày, nhưng dễ chịu vì dường như mọi chuyện… không quá tệ.</p>
+<p>Tối hôm đó, điện thoại tôi rung lên liên tục. “Đỗ Hoàng Khoa đã thêm bạn vào nhóm Zalo 10A8 💚”. Tôi chần chừ một lúc rồi cũng bấm vào. Màn hình sáng lên với hàng trăm tin nhắn mới. Mọi người đang thi nhau giới thiệu tên, trường cũ, sở thích. Những sticker vui nhộn, những câu đùa mà tôi không hiểu, những kế hoạch rủ nhau đi ăn vặt… Cả thế giới <strong>học đường</strong> sôi động đang thu nhỏ lại trong chiếc điện thoại, và một lần nữa, tôi cảm thấy mình là người ngoài cuộc. Bức tường vô hình lại được dựng lên. Tôi lướt qua danh sách thành viên, đọc từng cái tên xa lạ, và rồi dừng lại ở một cái tên: Nguyễn Ngọc An.</p>
+<p>Là bạn nữ ngồi cạnh cửa sổ. Avatar của An là một bức vẽ chì đơn giản hình một chiếc lá đang bay trong gió. Trong nhóm chat ồn ào, An hoàn toàn im lặng, giống hệt như ở ngoài đời. Một sự đồng điệu thầm lặng khiến tôi cảm thấy đỡ lạc lõng hơn đôi chút.</p>
+<p>Mấy ngày sau trôi qua khá yên bình. Tôi và Khoa mặc định trở thành bạn cùng bàn và bạn cùng về. Cậu ấy kéo tôi vào những cuộc trò chuyện vô thưởng vô phạt, bảo vệ tôi khỏi những lời bắt chuyện bất ngờ từ người khác bằng cách trả lời thay. Dần dần, sự hiện diện của Khoa bên cạnh không còn khiến tôi căng thẳng nữa, mà trở thành một vùng an toàn.</p>
+<p>Cho đến một buổi sinh hoạt lớp.</p>
+<p>“Để lớp chúng ta hoạt động hiệu quả,” cô Mai mỉm cười nói, “chúng ta cần một ban cán sự lớp thật năng nổ. Bây giờ, các em hãy tự ứng cử hoặc đề cử những bạn mình tin tưởng vào các vị trí lớp trưởng, lớp phó nhé.”</p>
+<p>Không khí trong lớp lập tức sôi nổi hẳn lên. Nỗi sợ hãi lớn nhất của tôi ập đến: sự chú ý của tập thể. Tôi chỉ mong mình có thể tàng hình. Khoa bên cạnh huých tay tôi:</p>
+<p>“Hay cậu ứng cử lớp phó lao động đi Minh? Cậu trông chăm chỉ, cẩn thận mà.”</p>
+<p>Tôi giãy nảy, xua tay lia lịa, tim đập như trống trận. Chỉ nghĩ đến việc phải đứng trước cả lớp và phát biểu thôi đã đủ khiến tôi ngạt thở.</p>
+<p>Giữa lúc hỗn loạn, tôi lại vô thức nhìn về phía An. Cô bạn vẫn điềm tĩnh như mọi khi, ánh mắt trong veo nhìn ra ngoài cửa sổ, phác thảo gì đó vào cuốn sổ tay quen thuộc. An dường như miễn nhiễm với mọi sự ồn ào xung quanh. Có lẽ đó cũng là một cách <strong>chữa lành tâm hồn</strong>: tạo ra một thế giới đủ vững chãi để không bị ngoại cảnh tác động.</p>
+<p>Buổi bầu chọn kết thúc với một lớp trưởng năng nổ và hai lớp phó hoạt ngôn. Tôi thở phào nhẹ nhõm. Khi tiếng chuông tan học vang lên, tôi đang thu dọn sách vở thì Khoa chỉ về phía An: “Này, hình như bạn kia làm rơi gì kìa.”</p>
+<p>Tôi nhìn theo. Một chiếc bút chì gỗ lăn lốc dưới chân bàn của An mà cô bạn không hề hay biết. Cả lớp đã ùa ra gần hết, hành lang vắng dần. Não tôi lại bắt đầu một cuộc chiến nội tâm. <em>Nhặt lên và đưa cho bạn ấy? Nhưng nói gì bây giờ? ‘Bạn ơi, bạn làm rơi bút này.’ Có sáo rỗng quá không? Hay chỉ cần đặt lên bàn bạn ấy? Nhưng lỡ bạn ấy quay lại thì sao?</em>.</p>
+<p>Khoa đã chạy đi mua nước. Chỉ còn lại tôi, An và chiếc bút chì. Lời của cô Mai ngày đầu tiên lại văng vẳng: <em>“Hãy mở lòng và giúp đỡ lẫn nhau nhé.”</em></p>
+<p>Đó là một <strong>bài học sâu sắc</strong> mà tôi vẫn đang cố gắng thực hành. Hít một hơi thật sâu, tôi bước đến, nhặt chiếc bút chì lên. Trái tim tôi như muốn nhảy ra khỏi lồng ngực. An dường như cảm nhận được, cô quay lại.</p>
+<p>Ánh mắt chúng tôi lại chạm nhau. Lần này, không có sự bối rối. Tôi chỉ im lặng chìa chiếc bút về phía cô. An nhìn tôi, đôi mắt hơi ngạc nhiên rồi cong lên thành một nụ cười nhẹ, giống như vầng trăng khuyết.</p>
+<p>“Cảm ơn cậu,” giọng cô ấy trong và dịu, giống như những gì tôi đã tưởng tượng.</p>
+<p>Tôi chỉ gật đầu, rồi vội vàng quay về chỗ của mình, mặt nóng bừng. Không có cuộc trò chuyện nào tiếp diễn. Không có những lời nói ngượng nghịu. Chỉ có một hành động nhỏ, một lời cảm ơn và một nụ cười.</p>
+<p>Nhưng trong khoảnh khắc đó, tôi cảm thấy bức tường của mình đã có một vết nứt rất nhỏ. Những <strong>tình cảm</strong> đơn sơ nhất, những kết nối chân thành nhất, có lẽ không cần đến lời nói hoa mỹ. Đôi khi, nó chỉ bắt đầu từ việc nhặt giúp ai đó một chiếc bút chì rơi.</p></article><article id="chapter-3" class="chapter"><h2>Chương 4</h2><hr />
+<h3><strong>Chapter 4: Nhóm Ba Người và Phác Thảo Cành Phượng Vĩ</strong></h3>
+<p>Suốt quãng đường đến trường sáng hôm sau, tôi không nghe nhạc. Thay vào đó, trong đầu tôi là một thước phim quay chậm chỉ chiếu đi chiếu lại một cảnh duy nhất: khoảnh khắc tôi đưa chiếc bút cho An, và cô ấy mỉm cười nói "Cảm ơn cậu".</p>
+<p>Não bộ overthinking của tôi vẫn làm công việc thường ngày của nó: phân tích từng chi tiết. Nụ cười ấy kéo dài bao lâu? 0.7 giây? Giọng nói của cô ấy có thật sự trong như tôi nhớ không? Ánh mắt có biểu lộ sự khó chịu nào không? Nhưng lạ thay, lần này, những vòng lặp suy nghĩ không kéo tôi xuống hố sâu của sự lo âu. Thay vào đó, nó giống như việc bạn mân mê một viên sỏi ấm áp trong túi áo vào ngày se lạnh. Một cảm giác dễ chịu, một chút hy vọng mong manh. Vết nứt trên bức tường của tôi dường như đang được một tia nắng nhỏ nhoi chiếu rọi.</p>
+<p>Cảm giác ấm áp đó kéo dài cho đến tiết Văn.</p>
+<p>"Để bắt đầu cho học kỳ, chúng ta sẽ có một bài tập nhóm," cô Mai thông báo với nụ cười hiền hậu. "Đề tài là: Phân tích hình tượng <strong>tình bạn</strong> trong một tác phẩm văn học mà các em yêu thích. Mỗi nhóm sẽ có từ ba đến bốn thành viên, và các em có hai tuần để chuẩn bị trước khi thuyết trình."</p>
+<p>Hai từ "bài tập nhóm" và "thuyết trình" giáng xuống tôi như một bản án. Cả lớp ngay lập tức vỡ oà trong tiếng xì xào bàn tán. Mọi người bắt đầu quay sang nhau, những cánh tay vẫy gọi, những cái gật đầu giao ước. Thế giới <strong>học đường</strong> vận hành theo những quy luật xã hội mà tôi chưa bao giờ giải mã được. Tôi lại thu mình vào chiếc vỏ ốc, chỉ mong không ai để ý đến sự tồn tại của mình.</p>
+<p>Nhưng tôi có Khoa.</p>
+<p>"Tuyệt vời! Mình với cậu một nhóm nhé, Minh?" Khoa quay sang, nụ cười vẫn rạng rỡ như thường lệ. Đó là chiếc phao cứu sinh quen thuộc. Tôi gật đầu lia lịa. "Nhưng mà... nhóm cần ba đến bốn người. Để xem nào..."</p>
+<p>Khoa đảo mắt quanh lớp. Tim tôi bắt đầu đập nhanh hơn. <em>Đừng chọn ai nói nhiều quá, làm ơn. Đừng chọn ai quá nổi bật.</em> Ánh mắt Khoa dừng lại ở một nơi mà tôi không ngờ tới nhất, nhưng trong thâm tâm lại hy vọng nhất.</p>
+<p>Dãy bàn cạnh cửa sổ.</p>
+<p>Nguyễn Ngọc An vẫn đang ngồi đó, im lặng giữa sự hỗn loạn. Cô không tìm kiếm ai, và dường như cũng không có ai tìm kiếm cô. Cô chỉ đơn giản là tồn tại trong thế giới riêng của mình, giống như một hòn đảo nhỏ thanh bình.</p>
+<p>"Hay là mình rủ bạn An?" Khoa thì thầm, như đọc được suy nghĩ của tôi. "Tớ thấy bạn ấy có vẻ chăm học, nghiêm túc. Làm bài nhóm với người như vậy chắc sẽ ổn."</p>
+<p>Lý do của Khoa rất thực tế, không hề có một tầng ý nghĩa phức tạp nào. Nhưng với tôi, đề nghị đó vừa đáng sợ lại vừa cuốn hút. Tôi chưa kịp phản ứng thì Khoa đã đứng dậy, tiến thẳng về phía An. Tôi nín thở, cảm giác như mình đang xem một bộ phim mà chính mình là nhân vật phụ bất đắc dĩ.</p>
+<p>"Chào An, mình là Khoa, ngồi bàn cuối," Khoa bắt đầu một cách tự nhiên. "Bọn mình đang lập nhóm Văn, mới có tớ với Minh thôi. Cậu có muốn vào nhóm cùng bọn mình không?"</p>
+<p>An ngước lên, đôi mắt trong veo nhìn Khoa, rồi lướt qua tôi chỉ trong một khoảnh khắc. Lại là ánh mắt đó, không dò xét, chỉ tĩnh lặng như mặt hồ. Cuộc chiến nội tâm lại diễn ra trong tôi. <em>Làm ơn đồng ý đi. Nhưng nếu bạn ấy vào nhóm, mình sẽ phải nói chuyện. Phải làm việc chung. Nhưng...</em>. Một <strong>tình cảm</strong> hỗn độn, vừa muốn kết nối lại vừa sợ hãi chính sự kết nối đó.</p>
+<p>An im lặng một vài giây, rồi cô ấy gật đầu nhẹ.</p>
+<p>"Được," một từ duy nhất, vẫn dịu dàng và dứt khoát.</p>
+<p>Vậy là xong. Nhóm ba người của chúng tôi được thành lập một cách chóng vánh như vậy. Khoa vui vẻ quay về chỗ, còn tôi thì cảm thấy tim mình vẫn chưa thể đập lại bình thường.</p>
+<p>Cuối buổi học, chúng tôi ở lại vài phút để bàn bạc. Đúng như tôi dự đoán, Khoa đảm nhận vai trò khuấy động không khí.</p>
+<p>"Vậy chúng ta chọn tác phẩm nào đây? ‘Dế Mèn phiêu lưu ký’ nhé? Tình bạn của Dế Mèn với Dế Trũi kinh điển luôn!"</p>
+<p>Tôi chỉ im lặng ngồi nghe, còn An thì lật cuốn sổ tay của cô ra. Tôi vô tình liếc nhìn. Trên trang giấy không phải là chữ, mà là một bức phác thảo bút chì vô cùng chi tiết. Đó là cây phượng vĩ già ở góc sân trường, với những nhánh cây khẳng khiu vươn ra như những cánh tay. Nét vẽ của An rất có hồn, tĩnh lặng nhưng đầy sức sống, giống hệt như con người cô.</p>
+<p>"Hay là... 'Hai đứa trẻ' của Thạch Lam?" An bất ngờ lên tiếng, giọng cô rất nhỏ nhưng đủ để cả hai chúng tôi nghe thấy. "Tình cảm giữa Liên và An. Nó không phải là một <strong>tình bạn</strong> ồn ào, mà là một sự đồng điệu thầm lặng."</p>
+<p>Khoa gãi đầu. "Cũng hay. Ý tưởng hay đấy An." Cậu ấy quay sang tôi: "Minh thấy sao?"</p>
+<p>Tất cả sự chú ý đổ dồn về phía tôi. Tôi cảm thấy mặt mình nóng lên. Nhưng câu nói của An - "sự đồng điệu thầm lặng" - đã chạm đến một điều gì đó sâu thẳm trong tôi.</p>
+<p>"Mình... mình thấy được," tôi lí nhí.</p>
+<p>An khẽ gật đầu, một nụ cười gần như không thể nhận ra lướt trên môi cô. Cô ghi tên tác phẩm vào sổ, ngay bên dưới bức phác thảo cành phượng.</p>
+<p>Hôm đó, trên đường về, Khoa vẫn nói rất nhiều, nhưng tâm trí tôi lại bị chiếm lĩnh bởi những hình ảnh khác: một cái gật đầu đồng ý, một bức vẽ cành phượng vĩ, và một cụm từ "sự đồng điệu thầm lặng". Bị ném vào một thử thách đáng sợ, nhưng tôi lại không cảm thấy hoàn toàn hoảng loạn. Có lẽ đây chính là một <strong>bài học sâu sắc</strong> mà cuộc sống <strong>học đường</strong> đang muốn dạy tôi: quá trình <strong>chữa lành tâm hồn</strong> không phải lúc nào cũng là những bước đi dễ dàng trong vùng an toàn. Đôi khi, nó là việc chấp nhận để người khác kéo mình ra khỏi đó, đối mặt với thử thách, và nhận ra rằng trong cái đáng sợ ấy, lại ẩn chứa những <strong>bạn bè</strong> và những kết nối mà mình hằng tìm kiếm.</p></article><article id="chapter-4" class="chapter"><h2>Chương 5</h2><hr />
+<h3><strong>Chapter 5: Những Mảnh Ghép Đầu Tiên</strong></h3>
+<p>Buổi họp nhóm đầu tiên của chúng tôi diễn ra tại thư viện trường vào một buổi chiều nắng nhạt. Thư viện là một trong số ít những nơi trong môi trường <strong>học đường</strong> mà tôi cảm thấy thực sự thoải mái. Sự im lặng ở đây không phải là sự im lặng trống rỗng, đáng sợ, mà là một sự tĩnh lặng đầy ắp tri thức. Mọi người đều chìm vào thế giới của riêng mình, và không ai đòi hỏi bạn phải nói khi không cần thiết.</p>
+<p>Chúng tôi chọn một chiếc bàn gỗ dài ở góc phòng, gần cửa sổ nhìn ra sân sau vắng vẻ. Không khí ban đầu khá ngượng ngùng. Khoa, người luôn là trung tâm của mọi cuộc vui, dường như cũng cảm thấy năng lượng của mình bị bức tường im lặng của thư viện kiềm hãm lại. Cậu ấy gãi đầu, lật qua lật lại cuốn sách giáo khoa một cách bồn chồn.</p>
+<p>An, như thường lệ, vẫn rất bình tĩnh. Cô đặt cuốn sổ tay và hộp bút chì của mình ngay ngắn trên bàn. Thay vì nhìn vào chúng tôi, cô nhìn ra ngoài cửa sổ, nơi những tia nắng cuối ngày đang xiên qua kẽ lá, tạo thành những vệt sáng lấp lánh trên nền gạch cũ. Trông cô giống như một phần của khung cảnh yên bình đó.</p>
+<p>Và tôi, tôi ngồi đó, tay nắm chặt cây bút, cảm thấy mình là mảnh ghép lạc lõng nhất. Nỗi sợ hãi quen thuộc lại dâng lên: <em>Mình nên nói gì trước đây? Hay đợi mọi người nói? Lỡ mình nói gì đó ngớ ngẩn thì sao?</em></p>
+<p>Phá vỡ sự im lặng chính là Khoa. Cậu ấy hắng giọng, cố gắng nói nhỏ nhất có thể: "Rồi, vậy giờ mình phân công công việc nhé? Hay là mình đọc lại truyện trước đã?"</p>
+<p>An quay vào, ánh mắt vẫn trong veo. "Mình nghĩ nên cùng nhau đọc và cảm nhận lại trước. Để chắc rằng cả ba chúng ta đều có chung một hướng đi."</p>
+<p>Tôi gật đầu đồng tình. Đó là một ý kiến rất hay, nó tạo ra sự kết nối thay vì chỉ chia việc một cách máy móc. Khoa cũng đồng ý ngay. Thế là, dưới ánh đèn vàng ấm áp của thư viện, chúng tôi bắt đầu chìm vào thế giới của chị em Liên và An trong đêm tối phố huyện nghèo nàn.</p>
+<p>Khoa đọc một đoạn, rồi đến An, rồi đến tôi. Giọng của Khoa nhiệt huyết, rành rọt. Giọng An thì trầm và dịu, như một dòng suối nhỏ. Đến lượt mình, tôi đọc lí nhí, tim đập thình thịch vì căng thẳng khi phải phát ra âm thanh. Nhưng khi những câu văn của Thạch Lam trôi qua, nỗi sợ của tôi dần tan biến, nhường chỗ cho sự đồng cảm với nhân vật.</p>
+<p>Chúng tôi dừng lại ở đoạn văn miêu tả cảnh đợi tàu.</p>
+<p>"Cảnh này khó diễn tả cảm xúc thật," Khoa nói, gãi cằm suy tư. "Nó buồn nhưng lại có chút hy vọng. Thuyết trình sao cho ra được cái hồn này đây?"</p>
+<p>An không nói gì, tay cô bắt đầu lướt trên trang giấy. Những nét chì mảnh mai nhanh chóng phác thảo ra một khung cảnh đêm tối, một quầng sáng le lói từ ngọn đèn và hai bóng người nhỏ bé đang ngồi đợi. Bức vẽ của cô ấy còn truyền cảm hơn cả lời nói. Đó là một cách giao tiếp rất riêng, một phương pháp <strong>chữa lành tâm hồn</strong> thông qua nghệ thuật.</p>
+<p>"Bức vẽ của cậu đẹp quá, An," Khoa phải thốt lên.</p>
+<p>An chỉ khẽ mỉm cười.</p>
+<p>Tôi nhìn vào bức vẽ, rồi nhìn vào những dòng chữ trong sách. Tâm trí overthinking của tôi bắt đầu kết nối những chi tiết nhỏ nhất. Cái bóng tối bao trùm, những kiếp người lay lắt như ngọn đèn dầu, và rồi đoàn tàu từ Hà Nội về. Đoàn tàu ấy…</p>
+<p>"Nó giống như một giấc mơ," tôi bất ngờ lên tiếng. Giọng tôi hơi run, nhưng tôi vẫn cố nói tiếp. "Đoàn tàu không chỉ mang ánh sáng... nó mang theo cả một thế giới khác, một thế giới rực rỡ và náo nhiệt mà hai đứa trẻ chỉ có thể ao ước. Nó chỉ đến và đi trong chốc lát, giống như một giấc mơ đẹp mà mình không thể níu giữ. Sự chờ đợi của hai chị em... không chỉ là chờ tàu, mà là chờ đợi một phép màu, một sự giải thoát khỏi cuộc sống tù túng này."</p>
+<p>Nói xong một tràng, tôi cảm thấy hai má nóng bừng, tim như muốn nhảy ra ngoài. Tôi đã nói quá nhiều. Chắc họ nghĩ tôi thật kỳ cục.</p>
+<p>Nhưng khi tôi ngẩng lên, tôi không thấy sự phán xét nào. Khoa nhìn tôi với ánh mắt kinh ngạc, rồi nụ cười rạng rỡ nở trên môi cậu. "Trời đất! Hay quá Minh! Đúng rồi! Chính là cảm giác đó! Một giấc mơ! Sao tớ không nghĩ ra nhỉ?"</p>
+<p>An cũng dừng bút. Cô nhìn thẳng vào mắt tôi, lần đầu tiên tôi thấy ánh mắt cô ấy sáng lên một cách rõ rệt. "Ý của cậu sâu sắc lắm," cô ấy nhẹ nhàng nói.</p>
+<p>Sự công nhận từ cả hai người, đặc biệt là từ An, giống như một dòng nước ấm áp chảy vào lòng tôi. Bức tường sợ hãi của tôi không chỉ nứt ra, mà dường như có một viên gạch vừa được gỡ bỏ. Tôi nhận ra, những suy nghĩ phức tạp của mình, thứ mà tôi luôn cho là gánh nặng, lại có thể là một thế mạnh. Đó là một <strong>bài học sâu sắc</strong> nhất tôi học được trong ngày hôm đó.</p>
+<p>Buổi làm việc nhóm hôm ấy kết thúc với hiệu quả không ngờ. Chúng tôi đã có một dàn ý chi tiết, với ý tưởng chủ đạo là "chuyến tàu của những giấc mơ". Khoa sẽ lo phần mở đầu và kết luận đầy năng lượng. An sẽ phụ trách phần hình ảnh minh họa, biến những cảm xúc thành nét vẽ. Và tôi, tôi được giao nhiệm vụ phân tích những chi tiết mang tính biểu tượng, thứ mà tôi giỏi nhất. Ba mảnh ghép tưởng chừng khác biệt lại có thể khớp vào nhau một cách hoàn hảo.</p>
+<p>Trên đường về, lần đầu tiên đi cùng nhau cả ba người, Khoa đề nghị: "Khao mừng buổi làm việc thành công thôi! Trà tắc thẳng tiến!"</p>
+<p>Tôi định từ chối theo thói quen, nhưng rồi tôi nhìn thấy An khẽ gật đầu. Và không hiểu sao, tôi cũng gật đầu theo.</p>
+<p>Dưới ánh hoàng hôn của thành phố Thủ Đức, chúng tôi cùng nhau bước đi. Tôi vẫn đi sau một chút, vẫn chưa quen với việc hòa mình vào một cuộc trò chuyện, nhưng cảm giác lạc lõng đã vơi đi rất nhiều. <strong>Tình bạn</strong>, <strong>tình cảm</strong> này, nó không ồn ào, không vồ vập. Nó bắt đầu từ sự tôn trọng những khác biệt của nhau, từ việc nhặt giúp một cây bút chì, từ một buổi chiều trong thư viện, và từ việc cùng nhau chờ đợi một "chuyến tàu".</p></article><article id="chapter-5" class="chapter"><h2>Chương 6</h2><hr />
+<h3><strong>Chapter 6: Bão Lặng Trước Giờ Thuyết Trình</strong></h3>
+<p>Quán trà tắc nằm nép mình trong một con hẻm nhỏ, đối lập hoàn toàn với sự ồn ào của con đường chính. Nhưng đối với tôi, nó vẫn là một chiến trường xã hội thu nhỏ. Ánh đèn vàng rực, tiếng máy xay đá ro ro, tiếng cười nói của những nhóm học sinh khác và một thực đơn dài dằng dặc dán trên tường. Não bộ của tôi lập tức rơi vào tình trạng quá tải.</p>
+<p>“Minh uống gì?” Khoa hỏi, giọng cậu ấy vẫn đầy năng lượng. “Trà tắc xí muội hay trà đào thạch dừa nhé?”</p>
+<p>Tôi chỉ đứng đờ ra đó, mắt lướt qua hàng chục cái tên mà không đọc được chữ nào. <em>Chọn gì bây giờ? Lỡ chọn phải món không ngon thì sao? Hay cứ chọn giống mọi người? Nhưng giống ai?</em></p>
+<p>Giữa lúc tôi đang chìm dần trong mớ suy nghĩ hỗn loạn của mình, An, người đang đứng cạnh tôi, khẽ lên tiếng, giọng nhỏ đủ cho tôi nghe.</p>
+<p>“Trà tắc truyền thống ở đây ngon lắm. Vị không quá ngọt.”</p>
+<p>Cô ấy không nhìn tôi, chỉ đơn giản là đưa ra một lời gợi ý, như thể đó là một sự thật hiển nhiên. Lời nói đó giống như một chiếc phao cứu sinh. Nó cho tôi một lựa chọn an toàn, một lối thoát khỏi ma trận của sự quyết định.</p>
+<p>“Vậy… cho mình một ly trà tắc truyền thống,” tôi lí nhí nói với Khoa.</p>
+<p>Khoa cười toe toét. “Ok chốt đơn!”</p>
+<p>Chúng tôi tìm được một góc nhỏ trong quán. Khoa vẫn là người dẫn dắt câu chuyện, cậu ấy kể về đội bóng mà cậu ấy yêu thích, về một tựa game mới ra. Tôi và An chủ yếu là người lắng nghe. Nhưng đây là một sự im lặng dễ chịu. Thỉnh thoảng, Khoa sẽ hỏi một câu và An sẽ đáp lời ngắn gọn, hoặc tôi sẽ gật đầu. Chúng tôi không cần phải cố gắng để lấp đầy những khoảng lặng. <strong>Tình bạn</strong> của chúng tôi, dường như, không được xây dựng bằng những lời nói không ngớt, mà bằng sự chấp nhận chính những khoảng lặng của nhau.</p>
+<p>Tôi ngồi đó, tay mân mê ly trà mát lạnh, quan sát An đang dùng ống hút khều nhẹ miếng tắc trong ly của cô ấy, rồi lại nghe Khoa phàn nàn về một bài tập Toán khó. Lần đầu tiên, tôi cảm thấy mình là một phần của một điều gì đó. Không phải là một khán giả đứng ngoài nhìn vào. Tôi là một phần của "chúng tôi". Cảm giác thuộc về này, dù mong manh, chính là liều thuốc <strong>chữa lành tâm hồn</strong> hiệu quả nhất.</p>
+<p>Hai tuần tiếp theo trôi qua trong guồng quay của việc học và chuẩn bị cho bài thuyết trình. Chúng tôi gặp nhau thêm vài lần nữa ở thư viện. Sự ăn ý của nhóm ngày càng rõ rệt. Tôi sẽ cặm cụi viết ra những dòng phân tích chi tiết, Khoa sẽ biến những con chữ khô khan đó thành một kịch bản nói đầy hấp dẫn, còn An sẽ lặng lẽ chuyển hóa những ý tưởng của chúng tôi thành những bức phác thảo sinh động để đưa vào slide.</p>
+<p>Có lần, khi tôi đang bí ý, An chỉ đưa cho tôi xem một bức vẽ của cô. Cô vẽ cảnh chị em Liên ngồi tựa đầu vào nhau dưới hiên nhà, xung quanh là bóng tối dày đặc, nhưng trên gương mặt lại ánh lên một tia hy vọng mong manh từ phía đường tàu xa xa. Bức vẽ đó đã nói lên tất cả những gì tôi đang cố gắng diễn đạt bằng từ ngữ. Một <strong>tình cảm</strong> thầm lặng, một sự kết nối không lời giữa những thành viên trong nhóm, đã giúp chúng tôi vượt qua những khó khăn.</p>
+<p>Và rồi, ngày định mệnh cũng đến.</p>
+<p>Tiết Văn.</p>
+<p>Khi cô Mai bước vào lớp và mỉm cười nói: “Hôm nay chúng ta sẽ bắt đầu với phần trình bày của các nhóm nhé,” tim tôi như rơi thẳng xuống dạ dày. Bức tường sợ hãi mà tôi đã cố gắng phá bỏ từng chút một trong hai tuần qua dường như được xây lại chỉ trong một giây, vững chắc và cao hơn bao giờ hết.</p>
+<p>Lòng bàn tay tôi ướt đẫm mồ hôi. Tiếng cô gọi tên các nhóm khác giống như những âm thanh vọng về từ một thế giới xa xôi. Trong đầu tôi chỉ có một suy nghĩ lặp đi lặp lại: <em>Sắp đến lượt mình. Sắp đến lúc phải đứng trước mặt tất cả mọi người.</em></p>
+<p>“Cậu không sao chứ, Minh?” Khoa huých nhẹ vào tay tôi, giọng thì thầm. “Mặt cậu trắng bệch cả rồi.”</p>
+<p>Tôi chỉ biết lắc đầu, không thể nói thành lời. Tôi cảm thấy khó thở. Nỗi sợ bị đánh giá, sợ nói vấp, sợ trở thành trò cười đang bóp nghẹt tôi.</p>
+<p>An ngồi phía trên không quay lại, nhưng cô ấy dường như cảm nhận được sự hoảng loạn của tôi. Cô ấy xé một mẩu giấy nhỏ từ cuốn sổ tay của mình, vẽ nhanh một thứ gì đó rồi chuyền nó xuống dưới bàn cho tôi.</p>
+<p>Tôi run rẩy mở ra. Đó không phải là một bức tranh phức tạp. Chỉ là hình vẽ một chiếc lá nhỏ đang bay lên theo chiều gió, giống hệt avatar của An. Một nét vẽ đơn giản nhưng đầy kiên định. Bên dưới, cô ấy viết một dòng chữ ngắn: <em>"Cậu không một mình."</em></p>
+<p>Một câu nói đơn giản. Một hình vẽ nhỏ bé. Nhưng nó lại có sức mạnh hơn bất cứ lời động viên hoa mỹ nào. Nó không nói rằng "cậu sẽ làm được", nó không tạo áp lực rằng tôi phải thành công. Nó chỉ đơn giản là một lời khẳng định về sự tồn tại của một <strong>tình bạn</strong>, một lời nhắc nhở rằng tôi có đồng đội bên cạnh. Đây chính là <strong>bài học sâu sắc</strong> nhất trong môi trường <strong>học đường</strong> khắc nghiệt này: sức mạnh không phải lúc nào cũng đến từ bản thân, đôi khi nó đến từ việc biết rằng có người đang đứng về phía mình.</p>
+<p>Tôi siết chặt mẩu giấy trong lòng bàn tay. Nó như một lá bùa hộ mệnh. Trái tim tôi vẫn đập loạn xạ, nhưng cơn sóng hoảng loạn đã bắt đầu lắng xuống.</p>
+<p>“Chuẩn bị nhé,” Khoa thì thầm khi nhóm phía trên vừa kết thúc phần trình bày của họ. Cậu ấy vỗ nhẹ vào lưng tôi, một cái vỗ đầy tin tưởng.</p>
+<p>Cô Mai nhìn xuống danh sách, rồi mỉm cười ngước lên. “Và bây giờ, cô mời nhóm tiếp theo, nhóm của bạn Đỗ Hoàng Khoa, Nguyễn Ngọc An và bạn Minh.”</p>
+<p>Cả lớp im phăng phắc. Mọi ánh mắt đổ dồn về phía chúng tôi. Đã đến lúc phải đối mặt.</p></article><article id="chapter-6" class="chapter"><h2>Chương 7</h2><hr />
+<h3><strong>Chapter 7: Chuyến Tàu Của Những Giấc Mơ Cất Lời</strong></h3>
+<p>Bước chân từ chỗ ngồi lên bục giảng có lẽ chỉ khoảng mười mét, nhưng đối với tôi, nó dài như một thế kỷ. Mỗi bước đi, tôi cảm nhận được sàn gạch men lạnh lẽo dưới đế giày, nghe thấy tiếng sột soạt của quần áo, và trên hết, tôi cảm nhận được gần bốn mươi cặp mắt đang đổ dồn vào mình. Bức tường vô hình của tôi không chỉ bao quanh lấy tôi nữa, nó đang co lại, ép chặt lấy lồng ngực khiến tôi gần như không thở nổi.</p>
+<p>Chúng tôi đứng vào vị trí. Khoa ở giữa, cầm chiếc điều khiển slide. An đứng bên trái, chịu trách nhiệm về mặt "kỹ thuật" tinh thần, và tôi đứng bên phải, cảm thấy mình nhỏ bé và lạc lõng dưới ánh đèn lớp học.</p>
+<p>Khoa hít một hơi sâu, và khi cậu ấy cất tiếng nói, mọi sự lo lắng dường như tan biến khỏi cậu. "Chào cô và các bạn, hôm nay nhóm em xin được trình bày về hình tượng <strong>tình bạn</strong> qua tác phẩm 'Hai đứa trẻ' của Thạch Lam."</p>
+<p>Giọng Khoa dõng dạc, tự tin, lối nói chuyện cuốn hút tự nhiên của cậu nhanh chóng thu hút sự chú ý của cả lớp. Cậu ấy dẫn dắt vào câu chuyện một cách khéo léo, vẽ nên bối cảnh phố huyện nghèo nàn và buồn bã.</p>
+<p>"Và để mở đầu cho cảm nhận về <strong>tình cảm</strong> của hai nhân vật," Khoa nói, tay bấm slide, "em xin mời các bạn đến với góc nhìn của bạn Ngọc An."</p>
+<p>Màn hình máy chiếu vụt sáng. Nhưng trên đó không phải là những dòng chữ chi chít.</p>
+<p>Đó là một bức tranh.</p>
+<p>Bức phác thảo bút chì của An hiện lên, sắc nét và đầy cảm xúc. Hình ảnh hai chị em Liên và An ngồi tựa vào nhau, mắt hướng về một nơi xa xăm vô định trong bóng tối. Một quầng sáng yếu ớt từ ngọn đèn dầu hắt lên gương mặt non nớt của họ. Bức tranh tĩnh lặng nhưng lại gào thét lên một nỗi buồn và một niềm hy vọng thầm kín.</p>
+<p>Cả lớp ồ lên khe khẽ. Ngay cả cô Mai cũng nhoẻn người về phía trước, ánh mắt ánh lên vẻ thích thú. Bằng một bức vẽ duy nhất, An đã thành công truyền tải cái hồn của tác phẩm, điều mà ngàn lời nói khó có thể diễn tả trọn vẹn.</p>
+<p>"Và giờ," giọng Khoa vang lên, kéo tôi về thực tại, "để đi sâu vào phân tích biểu tượng quan trọng nhất trong truyện, chuyến tàu đêm, xin mời phần trình bày của bạn Minh."</p>
+<p>Đây rồi. Khoảnh khắc mà tôi sợ hãi nhất. Cổ họng tôi khô khốc. Tôi mở miệng, nhưng âm thanh phát ra chỉ là một tiếng lí nhí, run rẩy.</p>
+<p>"Thưa... thưa cô và các bạn... Chuyến tàu..."</p>
+<p>Não tôi trống rỗng. Tất cả những gì tôi đã chuẩn bị kỹ lưỡng bay biến đi đâu mất. Tôi chỉ thấy những gương mặt đang nhìn mình, chờ đợi. Một vài tiếng xì xào bắt đầu nổi lên ở cuối lớp. Tôi cúi gằm mặt xuống, tay trong túi quần siết chặt lại, vô tình chạm phải mẩu giấy nhỏ mà An đã đưa.</p>
+<p><em>"Cậu không một mình."</em></p>
+<p>Lời nhắn và hình ảnh chiếc lá kiên cường lướt qua tâm trí tôi. Tôi liếc nhanh sang bên cạnh. Khoa đang nhìn tôi, một cái nhìn khích lệ, không hề có chút sốt ruột. An đứng đó, điềm tĩnh như một cái cây, sự im lặng của cô ấy bằng cách nào đó lại truyền cho tôi một nguồn sức mạnh lạ thường.</p>
+<p>Họ đang ở đây. Cùng với tôi.</p>
+<p>Tôi hít một hơi thật sâu. Tôi không nhìn vào những gương mặt xa lạ kia nữa. Tôi nhìn vào bức tranh của An trên màn chiếu, nhìn vào thế giới mà chúng tôi đã cùng nhau xây dựng nên trong hai tuần qua.</p>
+<p>Và tôi bắt đầu nói. Lần này, không phải là những câu chữ đã thuộc lòng. Tôi nói từ chính những dòng suy nghĩ của mình.</p>
+<p>"Em nghĩ... chuyến tàu không chỉ mang ánh sáng vật lý. Nó mang theo một giấc mơ," giọng tôi vẫn còn hơi run, nhưng đã rõ ràng hơn. "Với Liên và An, hai đứa trẻ sống trong một thế giới tĩnh lặng, tù đọng, đoàn tàu là một mảnh ký ức sống động về Hà Nội, là một thế giới khác đầy âm thanh và màu sắc. Sự chờ đợi của chúng... là chờ đợi được sống lại trong giấc mơ đó, dù chỉ trong vài khoảnh khắc ngắn ngủi."</p>
+<p>Tôi bắt đầu phân tích những chi tiết nhỏ, những thứ mà bộ não overthinking của tôi luôn nắm bắt rất nhanh. Tiếng còi tàu từ xa, những toa tàu sáng trưng, những đốm than bay trong đêm tối... tất cả đều là những mảnh ghép của một thế giới mà hai đứa trẻ khao khát nhưng không thể chạm tới.</p>
+<p>"Đó không phải là một <strong>tình bạn</strong> được thể hiện qua lời nói," tôi nói tiếp, giọng ngày càng tự tin hơn khi tôi chìm đắm vào dòng cảm xúc của chính mình. "Mà đó là một <strong>sự đồng điệu thầm lặng</strong>. Chúng không cần phải nói với nhau rằng chúng đang chờ tàu, chúng chỉ đơn giản là cùng nhau chờ đợi. Cùng nhau hy vọng. Giống như hai cái cây nhỏ mọc cạnh nhau, cùng hướng về một phía có ánh sáng."</p>
+<p>Khi tôi kết thúc phần của mình, cả lớp học im phăng phắc. Sự im lặng lần này không đáng sợ. Nó là sự im lặng của sự lắng nghe, của sự đồng cảm. Tôi ngẩng lên, nhìn thấy ánh mắt của cô Mai đang mỉm cười hài lòng.</p>
+<p>Khoa bước lên, kết luận lại bài nói một cách hoàn hảo, liên kết tất cả các ý lại với nhau.</p>
+<p>Và rồi, một tràng pháo tay vang lên. Không phải là những tiếng vỗ tay rời rạc, chiếu lệ. Đó là một tràng pháo tay thật sự.</p>
+<p>Bước về chỗ, chân tôi vẫn còn hơi run, nhưng không phải vì sợ hãi. Đó là sự run rẩy của một người vừa hoàn thành một việc mà mình chưa bao giờ nghĩ là có thể. Khoa huých vai tôi một cái thật mạnh, cười rạng rỡ. An đi bên cạnh, khi chúng tôi lướt qua nhau về chỗ ngồi, cô khẽ nói một câu đủ để tôi nghe: "Cậu làm tốt lắm."</p>
+<p>Ngồi xuống ghế, tôi thở phào một hơi dài. Tôi nhìn ra ngoài cửa sổ, nơi sân trường <strong>học đường</strong> vẫn y như mọi ngày. Nhưng thế giới trong tôi thì đã khác. Ngày hôm nay, tôi đã học được một <strong>bài học sâu sắc</strong>. Liều thuốc <strong>chữa lành tâm hồn</strong> tốt nhất không phải là trốn tránh nỗi sợ, mà là đối mặt với nó, cùng với những người <strong>bạn bè</strong> tin tưởng mình. Bức tường của tôi vẫn còn đó, nhưng lần đầu tiên, tôi biết rằng mình có đủ sức mạnh để bước qua nó.</p></article><article id="chapter-7" class="chapter"><h2>Chương 8</h2><hr />
+<h3><strong>Chapter 8: Những Khoảng Lặng Vàng Như Nắng</strong></h3>
+<p>Tiết học hôm đó kết thúc trong một trạng thái lâng lâng kỳ lạ. Lần đầu tiên, tôi không lao ra khỏi lớp ngay khi tiếng chuông reo. Tôi ngồi lại, sắp xếp sách vở một cách chậm rãi, cảm nhận dư vị của tràng pháo tay vẫn còn ấm nóng đâu đó trong lồng ngực. Cảm giác không giống như một màn pháo hoa rực rỡ, mà giống một đốm lửa nhỏ vừa được nhóm lên, âm ỉ và bền bỉ.</p>
+<p>Vài người bạn cùng lớp đi ngang qua bàn tôi, có người gật đầu, có người mỉm cười. Một bạn nam mà tôi không nhớ nổi tên còn giơ ngón tay cái lên. “Phần của cậu hay thật đấy, Minh.”</p>
+<p>Tôi chỉ biết gật đầu một cách ngượng ngùng, không thốt nên lời. Nhưng lần này, sự im lặng không đến từ nỗi sợ hãi tê liệt. Nó đến từ sự choáng ngợp. Bức tường của tôi vẫn còn đó, nhưng dường như nó đã trở nên trong suốt hơn một chút, đủ để tôi nhìn thấy và cảm nhận được thiện chí từ thế giới bên ngoài.</p>
+<p>“Thấy chưa, tớ đã bảo mà!” Khoa đập mạnh vào lưng tôi, kéo tôi ra khỏi dòng suy nghĩ. “Cậu mà cất lời thì ai cũng phải lắng nghe. Chúng ta đúng là một đội hoàn hảo!”</p>
+<p>Sự nhiệt tình của Khoa như một dòng nước mát, cuốn trôi đi những ngượng ngùng còn sót lại. Cậu ấy bắt đầu lên kế hoạch cho “liên hoan” ăn mừng chiến thắng, dù đó chỉ là một buổi đi ăn chè ở quán quen. Tôi không từ chối. An, người đã thu dọn xong từ lúc nào và đang im lặng đứng đợi, cũng khẽ gật đầu đồng ý. “Chúng tôi” đã trở thành một khái niệm quen thuộc đến lạ.</p>
+<p>Nhưng khi chúng tôi vừa bước ra khỏi cổng trường, điện thoại Khoa reo lên inh ỏi. Cậu ấy nghe máy, gương mặt rạng rỡ bỗng trở nên hơi nhăn nhó. “Alo… Gì cơ ạ? Về ngay ạ? Dạ, con về liền.”</p>
+<p>Khoa cúp máy, vẻ mặt đầy tiếc nuối. “Thôi chết, mẹ tớ gọi về có việc gấp rồi. Hẹn bữa chè vào hôm khác nhé. Xin lỗi hai cậu nhiều!”</p>
+<p>Nói rồi, Khoa vẫy tay và chạy biến đi, để lại tôi và An đứng giữa khoảng sân trường đang vắng dần.</p>
+<p>Không khí bỗng trở nên im ắng một cách lạ thường. Sự vắng mặt của năng lượng từ Khoa khiến mọi thứ như chậm lại. Cơn hoảng loạn quen thuộc bắt đầu nhen nhóm trong tôi. <em>Chỉ có hai người. Phải nói gì đây? Nên chào rồi về luôn không? Hay nên làm gì?</em></p>
+<p>Nhưng An không có vẻ gì là vội vã. Cô không nhìn tôi, chỉ ngước mắt về phía cây phượng vĩ già ở góc sân, nơi những tia nắng cuối chiều đang xuyên qua kẽ lá, tạo thành những hạt bụi vàng lấp lánh trong không khí.</p>
+<p>“Cậu có muốn ngồi lại một lát không?” An bất ngờ lên tiếng, giọng cô vẫn nhỏ nhẹ như vậy. “Ở đây nắng đẹp.”</p>
+<p>Tôi ngạc nhiên, nhưng rồi cũng gật đầu. Cô ấy dẫn tôi đến chiếc ghế đá dưới gốc cây phượng, nơi tôi đã từng thấy cô ấy ngồi một mình rất nhiều lần. Đây dường như là thế giới riêng của cô ấy.</p>
+<p>Chúng tôi ngồi đó trong im lặng. Nhưng nó không phải là khoảng lặng ngượng nghịu mà tôi vẫn sợ. Nó yên bình, giống như không khí trong thư viện. An lấy ra cuốn sổ tay quen thuộc, và tiếng bút chì sột soạt trên giấy trở thành âm thanh duy nhất giữa chúng tôi. Tôi tò mò liếc nhìn. Cô ấy không vẽ một thứ gì cụ thể cả, chỉ là những đường nét phác thảo lại cách ánh nắng chiếu lên những thân cây, những chiếc lá.</p>
+<p>Cô ấy dường như đang cố gắng lưu giữ lại khoảnh khắc này.</p>
+<p>“Cậu vẽ đẹp thật,” tôi buột miệng.</p>
+<p>An dừng bút, ngước lên nhìn tôi, một nụ cười thoáng qua trên môi. “Cảm ơn cậu. Tớ chỉ thích quan sát mọi thứ thôi.”</p>
+<p>“Tớ cũng vậy,” tôi đáp, giọng nhỏ hơn. “Nhưng tớ không vẽ ra được. Tớ chỉ giữ nó trong đầu.”</p>
+<p>An nhìn tôi, một cái nhìn sâu hơn mọi khi. Dường như cô ấy hiểu. Cô lật vài trang trong cuốn sổ của mình và đưa nó về phía tôi.</p>
+<p>“Cho cậu xem này.”</p>
+<p>Đó là một hành động đầy tin tưởng. Tôi cẩn thận đón lấy cuốn sổ. Bên trong không chỉ là những bức tranh phong cảnh. Có cả những bức ký họa nhanh về các bạn trong lớp: một bạn nữ đang ngáp ngủ, thầy giáo dạy Toán cau mày, và cả Khoa đang cười toe toét. Mỗi bức vẽ đều nắm bắt được một nét rất thật, rất có hồn của nhân vật. Và rồi, ở một trang gần cuối, tôi sững người.</p>
+<p>Đó là một bức phác thảo hình dáng một cậu con trai nhìn từ phía sau, đang ngồi một mình ở dãy bàn cuối, vai hơi so lại, mắt nhìn ra ngoài cửa sổ.</p>
+<p>Là tôi.</p>
+<p>Tôi ngẩng lên nhìn An, không biết phải nói gì. Cô ấy không hề tỏ ra bối rối, chỉ giải thích một cách điềm tĩnh. “Tớ thấy cậu hay ngồi như vậy. Trông rất tập trung.”</p>
+<p>Trái tim tôi đập một nhịp thật khẽ. Lần đầu tiên, có người nhìn thấy sự im lặng của tôi không phải là sự lập dị hay khó gần, mà là “sự tập trung”.</p>
+<p>“Cảm ơn cậu… vì mẩu giấy lúc sáng,” tôi chuyển chủ đề, giọng chân thành. “Nó thực sự… đã giúp tớ rất nhiều.”</p>
+<p>An khẽ gật đầu. “Tớ biết cậu làm được mà. Cậu không chỉ nói, cậu đã kể một câu chuyện. Giọng của cậu lúc đó… rất thật.”</p>
+<p>Sự công nhận của cô ấy khác hẳn với lời khen của Khoa. Nó không ồn ào, nhưng lại chạm đến nơi sâu nhất trong tâm hồn tôi. Cô ấy đã không chỉ nghe, mà còn thực sự lắng nghe.</p>
+<p>Chúng tôi ngồi thêm một lát nữa, cho đến khi nắng chiều nhạt hẳn. Trên đường đi bộ ra bến xe buýt, chúng tôi cũng không nói nhiều. Nhưng sự im lặng giờ đây đã mang một ý nghĩa hoàn toàn khác. Nó không còn là một bức tường ngăn cách, mà đã trở thành một cây cầu. Một cây cầu mỏng manh được xây nên từ sự thấu hiểu, từ một bức vẽ chì, và từ những khoảng lặng vàng như nắng chiều hôm ấy.</p></article></main>
+                    <footer><p>— Hết —</p></footer>
+                </div>
+            </div>
+
+            <!-- CÁC NÚT ĐIỀU HƯỚNG -->
+            <button class="nav-btn" id="to-top">Lên đầu</button>
+            <button class="nav-btn" id="next-chapter">Tiếp theo</button>
+
+            <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const body = document.body;
+            const toggleBtn = document.getElementById("toc-toggle-btn");
+            const sidebar = document.getElementById("toc-sidebar");
+            const overlay = document.getElementById("overlay");
+            const tocLinks = document.querySelectorAll("#toc-sidebar .toc-link");
+
+            function toggleSidebar() {
+                body.classList.toggle("sidebar-open");
+            }
+
+            // Mở/đóng sidebar khi click nút toggle hoặc overlay
+            if (toggleBtn) toggleBtn.addEventListener("click", toggleSidebar);
+            if (overlay) overlay.addEventListener("click", toggleSidebar);
+
+            // Đóng sidebar khi click vào một link chương
+            tocLinks.forEach(link => {
+                link.addEventListener("click", () => {
+                    if (body.classList.contains("sidebar-open")) {
+                        toggleSidebar();
+                    }
+                });
+            });
+
+            /* --- LOGIC CHUYỂN THEME (Giữ nguyên) --- */
+            const themeButtons = document.querySelectorAll(".theme-btn");
+            function applyTheme(theme) {
+                document.body.dataset.theme = theme;
+                localStorage.setItem('storyTheme', theme);
+            }
+            const savedTheme = localStorage.getItem('storyTheme');
+            if (savedTheme) applyTheme(savedTheme);
+            themeButtons.forEach(btn => {
+                btn.addEventListener("click", () => applyTheme(btn.dataset.theme));
+            });
+
+            /* --- LOGIC THANH PROGRESS (Giữ nguyên) --- */
+            const progressBar = document.getElementById("progress-bar");
+            if(progressBar) document.addEventListener("scroll", () => {
+                let scrolled = (document.documentElement.scrollTop / (document.documentElement.scrollHeight - document.documentElement.clientHeight)) * 100;
+                progressBar.style.width = scrolled + "%";
+            });
+
+            /* --- LOGIC ĐÁNH DẤU MỤC LỤC (Giữ nguyên, đổi selector một chút) --- */
+            const chapterLinks = document.querySelectorAll(".toc-link");
+            if (chapterLinks.length > 0) {
+                window.addEventListener("scroll", () => {
+                    let fromTop = window.scrollY + 150;
+                    let activeLink = null;
+                    chapterLinks.forEach(link => {
+                        const section = document.querySelector(link.hash);
+                        if (section && section.offsetTop <= fromTop && section.offsetTop + section.offsetHeight > fromTop) {
+                           activeLink = link;
+                        }
+                    });
+                    chapterLinks.forEach(l => l.classList.remove("active"));
+                    if(activeLink) activeLink.classList.add("active");
+                });
+            }
+
+            /* --- LOGIC CÁC NÚT ĐIỀU HƯỚNG (Giữ nguyên) --- */
+            const toTopBtn = document.getElementById("to-top");
+            const nextChapterBtn = document.getElementById("next-chapter");
+            if (toTopBtn) toTopBtn.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+            if (nextChapterBtn) nextChapterBtn.addEventListener("click", () => {
+                let active = document.querySelector(".toc-link.active");
+                let links = Array.from(chapterLinks);
+                if (!active && links.length > 0) { links[0].click(); return; }
+                if (active) {
+                    let idx = links.indexOf(active);
+                    if (idx + 1 < links.length) links[idx+1].click();
+                }
+            });
+        });
+        </script>
+        </body>
+        </html>
+        
